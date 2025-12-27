@@ -1,6 +1,6 @@
 # snappy-analyzer
 
-using Go (Golang) and React,  build a highly efficient, "snappy" analyzer.
+Go (Golang) and React,  build a highly efficient, "snappy" analyzer.
 
 Here is a structured roadmap and architectural plan to develop this application.
 
@@ -82,4 +82,35 @@ suggest these future enhancements:
 * **Caching**: Use Redis to cache results for a specific URL for 10 minutes to save bandwidth.
 * **SEO Analysis**: Add checks for meta descriptions, image `alt` tags, and mobile responsiveness.
 * **Live Updates**: Use WebSockets to stream link-check results to the UI in real-time as they finish, rather than waiting for the whole batch.
+
+
+* **Models.go**
+Why this structure?
+HeadingCounts as a Map: Using map[string]int is more flexible than listing H1Count, H2Count, etc., individually. It allows your frontend to simply loop through the keys to display the counts.
+
+Pointer for ErrorDetail: By using a pointer (*ErrorDetail) and the omitempty tag, the JSON will completely hide the error field if the analysis is successful, keeping the API response clean.
+
+LinkStats Sub-struct: Grouping link data makes the JSON easier to read and manage on the React side (e.g., data.links.internal_count).
+
+* **parsar.go**
+Key Technical Decisions
+Recursive Traversal: The traverse function visits every node in the HTML tree exactly once ($O(n)$ complexity). This is efficient for memory and speed.
+
+Doctype Detection: HTML5 is simply <!DOCTYPE html>. Older versions have long strings (e.g., PUBLIC "-//W3C//DTD HTML 4.01//EN"...).
+
+Login Form Heuristic: The most reliable way to identify a login form without complex AI is checking for the existence of an <input type="password"> inside a <form> element.
+
+Decoupling: Notice that ParseHTML takes an io.Reader. This is a Go best practice because it doesn't care if the HTML comes from a live website, a local file, or a hardcoded string during testing.
+
+* **checker.go**
+Key Technical Details
+
+sync.WaitGroup: This acts as a counter. We Add(1) for every link we check and call Done() when finished. wg.Wait() blocks the main execution until the counter hits zero.
+
+sync.Mutex: Since multiple goroutines might try to increment inaccessibleCount at the exact same millisecond, we use a Mutex (Mutual Exclusion) to "lock" the variable during the update to prevent data races.
+
+HEAD vs. GET: We try a HEAD request first. It only fetches the headers, which is much faster than downloading the entire page content. If the server doesn't support HEAD, we fallback to a standard GET.
+
+URL Resolution: We use base.ResolveReference(u) to handle relative links (e.g., <a href="/about">) by turning them into absolute URLs (e.g., https://example.com/about).
+
 
