@@ -5,10 +5,12 @@ type AnalysisResult struct {
 	URL           string         `json:"url"`
 	HTMLVersion   string         `json:"html_version"`
 	PageTitle     string         `json:"page_title"`
-	HeadingCounts map[string]int `json:"heading_counts"` // e.g., {"h1": 1, "h2": 5}
+	HeadingCounts map[string]int `json:"heading_counts"`
 	Links         LinkStats      `json:"links"`
 	HasLoginForm  bool           `json:"has_login_form"`
 	Error         *ErrorDetail   `json:"error,omitempty"`
+	// Internal field (not exported to JSON) to collect links during parsing
+	discoveredLinks []string
 }
 
 // LinkStats breaks down the internal, external, and broken links

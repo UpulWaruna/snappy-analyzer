@@ -42,8 +42,12 @@ func traverse(n *html.Node, res *AnalysisResult) {
 				res.HasLoginForm = true
 			}
 		case "a":
-			// We will handle links in the next step as they require
-			// the base URL to distinguish internal vs external.
+			//add this case to find links
+			for _, attr := range n.Attr {
+				if attr.Key == "href" {
+					res.discoveredLinks = append(res.discoveredLinks, attr.Val)
+				}
+			}
 		}
 	}
 
