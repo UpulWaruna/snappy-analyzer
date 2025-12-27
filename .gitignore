@@ -1,0 +1,15 @@
+# Binaries for programs and plugins
+backend/main
+backend/*.exe
+backend/*.test
+backend/__debug_bin
+
+# Dependency directories
+node_modules/
+frontend/build/
+
+# OS generated files
+.DS_Store
+.env
+.idea/
+.vscode/
