@@ -48,7 +48,7 @@ The frontend should be a clean, single-page interface.
 
 ## 4. Suggested Project Structure
 
-Keeping your code organized is vital for the "Submission" part of the task.
+Keeping Code organized is vital 
 
 ```text
 /web-analyzer
@@ -69,7 +69,7 @@ Keeping your code organized is vital for the "Submission" part of the task.
 
 ## 5. Development Decisions & Assumptions
 
-When writing your documentation, consider including these points:
+consider including these points:
 
 * **Timeout Policy**: I assumed a 5-second timeout for checking inaccessible links to ensure the application stays responsive.
 * **Link Depth**: I only analyzed links found on the immediate page (no deep crawling).
@@ -77,7 +77,7 @@ When writing your documentation, consider including these points:
 
 ## 6. Possible Improvements for the README
 
-To impress the reviewer, suggest these future enhancements:
+suggest these future enhancements:
 
 * **Caching**: Use Redis to cache results for a specific URL for 10 minutes to save bandwidth.
 * **SEO Analysis**: Add checks for meta descriptions, image `alt` tags, and mobile responsiveness.
