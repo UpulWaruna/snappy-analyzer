@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 )
 
 func main() {
@@ -41,35 +42,62 @@ func analysisHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 3. Fetch the target URL
-	resp, err := http.Get(req.URL)
-	if err != nil {
-		sendError(w, http.StatusServiceUnavailable, fmt.Sprintf("Could not reach URL: %v", err))
-		return
-	}
-	defer resp.Body.Close()
+	// // 3. Fetch the target URL
+	// resp, err := http.Get(req.URL)
+	// if err != nil {
+	// 	sendError(w, http.StatusServiceUnavailable, fmt.Sprintf("Could not reach URL: %v", err))
+	// 	return
+	// }
+	// defer resp.Body.Close()
 
-	if resp.StatusCode >= 400 {
-		sendError(w, resp.StatusCode, fmt.Sprintf("Target site returned an error: %s", resp.Status))
+	// if resp.StatusCode >= 400 {
+	// 	sendError(w, resp.StatusCode, fmt.Sprintf("Target site returned an error: %s", resp.Status))
+	// 	return
+	// }
+
+	// 3. Use ChromeDP instead of http.Get
+	renderedHTML, err := GetRenderedHTML(req.URL)
+	if err != nil {
+		sendError(w, http.StatusServiceUnavailable, "ChromeDP failed to render page")
 		return
 	}
 
-	// 4. Run Analysis
-	// Pass the body to our parser (from parser.go)
-	result, err := ParseHTML(resp.Body)
+	// 4. Parse the rendered HTML
+	// strings.NewReader converts the string back to a reader for the parser
+	result, err := ParseHTML(strings.NewReader(renderedHTML))
 	if err != nil {
-		sendError(w, http.StatusInternalServerError, "Failed to parse HTML")
+		sendError(w, http.StatusInternalServerError, "Failed to parse rendered HTML")
 		return
 	}
+
+	// // 4. Run Analysis
+	// // Pass the body to our parser (from parser.go)
+	// result, err := ParseHTML(resp.Body)
+	// if err != nil {
+	// 	sendError(w, http.StatusInternalServerError, "Failed to parse HTML")
+	// 	return
+	// }
 
 	// 5. Supplement with URL and Link checks (from checker.go)
 	// For this task, we'd modify traverse slightly to return a list of links,
 	// but for brevity, let's assume we extract them here or within ParseHTML.
+	// 5. Finalize analysis
 	result.URL = req.URL
 
-	// Example: Collecting all links and processing them
-	result.Links = ProcessLinks(req.URL, result.discoveredLinks)
+	// Get the full list of checked links
+	checkedLinks := ProcessLinks(req.URL, result.discoveredLinks)
 
+	// Summarize them into the LinkStats struct for the frontend
+	for _, l := range checkedLinks {
+		if l.IsExternal {
+			result.Links.ExternalCount++
+		} else {
+			result.Links.InternalCount++
+		}
+		if !l.Accessible {
+			result.Links.Inaccessible++
+		}
+	}
 	// 6. Return JSON to React
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
