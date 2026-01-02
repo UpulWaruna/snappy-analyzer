@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"log"
+	"log/slog"
 	"net/http"
+
+	"common/logger"
 
 	"github.com/rs/cors"
 )
@@ -29,7 +32,8 @@ func main() {
 	// Wrap the mux with the CORS middleware
 	handler := c.Handler(mux)
 
-	log.Println("Worker started on :8080")
+	logger.InitSharedLogger("Worker Service")
+	slog.Info("Worker Service started on", "port", 8080)
 	log.Fatal(http.ListenAndServe(":8080", handler))
 }
 
@@ -51,7 +55,7 @@ func analysisHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 3. Process in background
 	go func(targetURL string) {
-		log.Printf("Background analysis: %s", targetURL)
+		slog.Info("Background analysis: %s", targetURL)
 
 		// A. Render HTML
 		renderedHTML, err := GetRenderedHTML(targetURL)
@@ -86,7 +90,7 @@ func analysisHandler(w http.ResponseWriter, r *http.Request) {
 
 		// 4. Send the populated parsedResult to the socket service
 		sendToSocketService(parsedResult)
-		log.Printf("Successfully broadcasted results for: %s", targetURL)
+		slog.Info("Successfully broadcasted results for: %s", targetURL)
 	}(req.URL)
 }
 
@@ -102,7 +106,7 @@ func sendErrorToSocket(targetURL string, message string) {
 func sendToSocketService(result interface{}) {
 	jsonData, err := json.Marshal(result)
 	if err != nil {
-		log.Printf("Marshal error: %v", err)
+		slog.Info("Marshal error: %v", err)
 		return
 	}
 
@@ -115,7 +119,7 @@ func sendToSocketService(result interface{}) {
 
 	resp, err := http.Post(socketServiceURL, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
-		log.Printf("Failed to reach Socket Service: %v", err)
+		slog.Info("Failed to reach Socket Service: %v", err)
 		return
 	}
 	defer resp.Body.Close()

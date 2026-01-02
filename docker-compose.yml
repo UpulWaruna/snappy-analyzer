@@ -30,7 +30,9 @@ services:
 
   # 3. Headless Go Worker
   worker:
-    build: ./backend/headlessBrowser-worker
+    build: 
+      context: .
+      dockerfile: ./backend/headlessBrowser-worker/Dockerfile
     ports:
       - "8080:8080"
     environment:

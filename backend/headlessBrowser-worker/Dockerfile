@@ -1,16 +1,21 @@
 # Stage 1: Build the Go binary
 FROM golang:1.25-alpine AS builder
-
 WORKDIR /app
 
 # Copy go.mod and go.sum and download dependencies
-COPY go.mod go.sum ./
+COPY backend/headlessBrowser-worker/go.mod backend/headlessBrowser-worker/go.sum ./backend/headlessBrowser-worker/
+COPY backend/common/logger/go.mod ./backend/common/logger/
+
+WORKDIR /app/backend/headlessBrowser-worker
 RUN go mod download
 
-# Copy the source code
-COPY . .
+# 3. Copy source code - Added 'backend/' to common/logger
+WORKDIR /app
+COPY backend/headlessBrowser-worker/ ./backend/headlessBrowser-worker/
+COPY backend/common/logger/ ./backend/common/logger/
 
-# Build the application
+# 4. Build the binary
+WORKDIR /app/backend/headlessBrowser-worker
 RUN go build -o worker .
 
 # Stage 2: Create the runtime image with Chrome
@@ -32,7 +37,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the binary from the builder stage
-COPY --from=builder /app/worker .
+COPY --from=builder /app/backend/headlessBrowser-worker/worker .
 
 # Export port
 EXPOSE 8080
