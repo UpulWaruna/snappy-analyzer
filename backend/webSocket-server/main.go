@@ -3,7 +3,10 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"log/slog"
 	"net/http"
+
+	"common/logger"
 
 	"github.com/gorilla/websocket"
 )
@@ -33,7 +36,14 @@ func main() {
 	// Route for Backend Worker to "Push" data
 	http.HandleFunc("/publish", handlePublish)
 
-	log.Println("Socket Service started on :8081")
+	// ADD THIS LINE:
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
+
+	logger.InitSharedLogger("webSocket Service")
+	slog.Info("Socket Service started on", "port", 8081)
 	log.Fatal(http.ListenAndServe(":8081", nil))
 }
 
