@@ -1,28 +1,41 @@
-# Remove the version line from here
 services:
+  # 1. React Frontend
   frontend:
     build: ./frontend
     ports:
       - "3000:80"
     depends_on:
-      - worker
-      - socket-service
+      worker:
+        condition: service_started
     networks:
       - analyzer-net
 
+  # 2. WebSocket Socket Service
+  socket-service:
+    build: ./backend/webSocket-server
+    ports:
+      - "8081:8081"
+    # Healthcheck: Try to hit the server. If it responds, it's healthy.
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8081/publish"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    networks:
+      - analyzer-net
+
+  # 3. Headless Go Worker
   worker:
     build: ./backend/headlessBrowser-worker
     ports:
       - "8080:8080"
     environment:
       - CHROME_PATH=/usr/bin/google-chrome
-    networks:
-      - analyzer-net
-
-  socket-service:
-    build: ./backend/webSocket-server
-    ports:
-      - "8081:8081"
+    # This tells Docker: Don't just start the worker, wait until socket-service is HEALTHY
+    depends_on:
+      socket-service:
+        condition: service_healthy
     networks:
       - analyzer-net
 
