@@ -1,115 +1,122 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
-	"strings"
+
+	"github.com/rs/cors"
 )
 
-func main() {
-	// Define the analysis endpoint
-	http.HandleFunc("/analyze", analysisHandler)
+// AnalysisRequest defines the incoming JSON from React
+type AnalysisRequest struct {
+	URL string `json:"url"`
+}
 
-	fmt.Println("Server starting on :8080...")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		log.Fatal(err)
-	}
+func main() {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/analyze", analysisHandler)
+
+	// Setup CORS options
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{"http://localhost:3000"}, // Your React URL
+		AllowedMethods: []string{"POST", "OPTIONS"},
+		AllowedHeaders: []string{"Content-Type"},
+		Debug:          true, // Useful for troubleshooting
+	})
+
+	// Wrap the mux with the CORS middleware
+	handler := c.Handler(mux)
+
+	log.Println("Worker started on :8080")
+	log.Fatal(http.ListenAndServe(":8080", handler))
 }
 
 func analysisHandler(w http.ResponseWriter, r *http.Request) {
-	// 1. Enable CORS for React
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
-	if r.Method == "OPTIONS" {
-		return
-	}
-
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// 2. Decode user request
-	var req struct {
-		URL string `json:"url"`
-	}
+	// 1. Decode the request
+	var req AnalysisRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		sendError(w, http.StatusBadRequest, "Invalid request payload")
+		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
-	// // 3. Fetch the target URL
-	// resp, err := http.Get(req.URL)
-	// if err != nil {
-	// 	sendError(w, http.StatusServiceUnavailable, fmt.Sprintf("Could not reach URL: %v", err))
-	// 	return
-	// }
-	// defer resp.Body.Close()
-
-	// if resp.StatusCode >= 400 {
-	// 	sendError(w, resp.StatusCode, fmt.Sprintf("Target site returned an error: %s", resp.Status))
-	// 	return
-	// }
-
-	// 3. Use ChromeDP instead of http.Get
-	renderedHTML, err := GetRenderedHTML(req.URL)
-	if err != nil {
-		sendError(w, http.StatusServiceUnavailable, "ChromeDP failed to render page")
-		return
-	}
-
-	// 4. Parse the rendered HTML
-	// strings.NewReader converts the string back to a reader for the parser
-	result, err := ParseHTML(strings.NewReader(renderedHTML))
-	if err != nil {
-		sendError(w, http.StatusInternalServerError, "Failed to parse rendered HTML")
-		return
-	}
-
-	// // 4. Run Analysis
-	// // Pass the body to our parser (from parser.go)
-	// result, err := ParseHTML(resp.Body)
-	// if err != nil {
-	// 	sendError(w, http.StatusInternalServerError, "Failed to parse HTML")
-	// 	return
-	// }
-
-	// 5. Supplement with URL and Link checks (from checker.go)
-	// For this task, we'd modify traverse slightly to return a list of links,
-	// but for brevity, let's assume we extract them here or within ParseHTML.
-	// 5. Finalize analysis
-	result.URL = req.URL
-
-	// Get the full list of checked links
-	checkedLinks := ProcessLinks(req.URL, result.discoveredLinks)
-
-	// Summarize them into the LinkStats struct for the frontend
-	for _, l := range checkedLinks {
-		if l.IsExternal {
-			result.Links.ExternalCount++
-		} else {
-			result.Links.InternalCount++
-		}
-		if !l.Accessible {
-			result.Links.Inaccessible++
-		}
-	}
-	// 6. Return JSON to React
+	// 2. Respond to React immediately
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	w.WriteHeader(http.StatusAccepted)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "processing",
+		"message": "Analysis started for " + req.URL,
+	})
+
+	// 3. Process in background
+	go func(targetURL string) {
+		log.Printf("Background analysis: %s", targetURL)
+
+		// A. Render HTML
+		renderedHTML, err := GetRenderedHTML(targetURL)
+		if err != nil {
+			sendErrorToSocket(targetURL, "ChromeDP failed: "+err.Error())
+			return
+		}
+
+		// B. Parse HTML (This creates our primary Result object)
+		parsedResult, err := ParseHTML(bytes.NewReader([]byte(renderedHTML)))
+		if err != nil {
+			sendErrorToSocket(targetURL, "Parser failed: "+err.Error())
+			return
+		}
+
+		// C. Fill in the missing URL (since ParseHTML doesn't know it)
+		parsedResult.URL = targetURL
+
+		// D. Process Links & Update the parsedResult directly
+		checkedLinks := ProcessLinks(targetURL, parsedResult.discoveredLinks)
+
+		for _, l := range checkedLinks {
+			if l.IsExternal {
+				parsedResult.Links.ExternalCount++
+			} else {
+				parsedResult.Links.InternalCount++
+			}
+			if !l.Accessible {
+				parsedResult.Links.Inaccessible++
+			}
+		}
+
+		// 4. Send the populated parsedResult to the socket service
+		sendToSocketService(parsedResult)
+		log.Printf("Successfully broadcasted results for: %s", targetURL)
+	}(req.URL)
 }
 
-func sendError(w http.ResponseWriter, code int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(AnalysisResult{
-		Error: &ErrorDetail{
-			StatusCode: code,
-			Message:    message,
-		},
+// Helper for cleaner error reporting
+func sendErrorToSocket(targetURL string, message string) {
+	sendToSocketService(map[string]interface{}{
+		"url":   targetURL,
+		"error": map[string]string{"message": message},
 	})
+}
+
+// sendToSocketService POSTs the result to the broadcaster container
+func sendToSocketService(result interface{}) {
+	jsonData, err := json.Marshal(result)
+	if err != nil {
+		log.Printf("Marshal error: %v", err)
+		return
+	}
+
+	// CHANGE THIS:
+	// From: "http://localhost:8081/publish" for local testing
+	// To:   "http://socket-service:8081/publish" for Docker networking
+
+	// We use the container name 'socket-service' defined in docker-compose
+	socketServiceURL := "http://socket-service:8081/publish"
+
+	resp, err := http.Post(socketServiceURL, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		log.Printf("Failed to reach Socket Service: %v", err)
+		return
+	}
+	defer resp.Body.Close()
 }

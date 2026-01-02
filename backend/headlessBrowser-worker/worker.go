@@ -11,6 +11,9 @@ import (
 func GetRenderedHTML(targetURL string) (string, error) {
 	// 1. Setup options (Headless mode is default)
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.NoSandbox,                           // Crucial for Docker
+		chromedp.DisableGPU,                          // Usually necessary in containers
+		chromedp.Flag("disable-dev-shm-usage", true), // Prevents crashes in small containers
 		chromedp.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"),
 	)
 
@@ -25,25 +28,6 @@ func GetRenderedHTML(targetURL string) (string, error) {
 	defer cancel()
 
 	var htmlContent string
-
-	// 3. Execute actions
-	// err := chromedp.Run(ctx,
-	// 	chromedp.EmulateViewport(1920, 5000), // Height of 5000 to catch footer links
-	// 	chromedp.Navigate(targetURL),
-	// 	// Wait for body to be ready
-	// 	chromedp.WaitReady(`body`, chromedp.ByQuery),
-	// 	// Scroll to the absolute bottom to trigger lazy-loaded JS links
-	// 	chromedp.Evaluate(`window.scrollTo(0, document.body.scrollHeight)`, nil),
-	// 	chromedp.Sleep(2*time.Second),
-
-	// 	chromedp.Evaluate(`window.scrollTo(0, document.body.scrollHeight)`, nil),
-	// 	chromedp.Sleep(5*time.Second),
-	// 	// Wait for the footer specifically to ensure full render
-	// 	//chromedp.WaitVisible(`footer`, chromedp.ByQuery),
-	// 	// A final sleep to let the link-injection scripts finish
-
-	// 	chromedp.OuterHTML(`html`, &htmlContent),
-	// )
 
 	err := chromedp.Run(ctx,
 		chromedp.EmulateViewport(1920, 5000),
