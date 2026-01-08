@@ -5,5 +5,5 @@ type BrowserProvider interface {
 }
 
 type ResultPublisher interface {
-	Publish(result interface{})
+	Publish(result interface{}) error
 }
