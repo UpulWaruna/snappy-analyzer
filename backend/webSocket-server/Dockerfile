@@ -16,7 +16,7 @@ COPY backend/common/logger/ ./backend/common/logger/
 
 # 4. Build the binary
 WORKDIR /app/backend/webSocket-server
-RUN go build -o socket-server .
+RUN go build -o socket-server ./cmd/main.go
 
 FROM alpine:latest
 WORKDIR /root/
