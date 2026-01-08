@@ -16,7 +16,7 @@ COPY backend/common/logger/ ./backend/common/logger/
 
 # 4. Build the binary
 WORKDIR /app/backend/headlessBrowser-worker
-RUN go build -o worker .
+RUN go build -o worker ./cmd/main.go
 
 # Stage 2: Create the runtime image with Chrome
 FROM debian:bullseye-slim
