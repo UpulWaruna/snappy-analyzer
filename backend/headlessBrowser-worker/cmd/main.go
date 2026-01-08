@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/rs/cors"
 )
 
 func main() {
@@ -23,9 +25,17 @@ func main() {
 	mux.HandleFunc("/analyze", handler.HandleAnalyze)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) })
 
+	// Setup CORS options
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{"http://localhost:3000"}, // Your React URL
+		AllowedMethods: []string{"POST", "OPTIONS"},
+		AllowedHeaders: []string{"Content-Type"},
+		Debug:          true, // Useful for troubleshooting
+	})
+
 	srv := &http.Server{
 		Addr:         ":8080",
-		Handler:      mux,
+		Handler:      c.Handler(mux),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,
