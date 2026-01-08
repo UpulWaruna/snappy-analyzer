@@ -33,6 +33,9 @@ func (uc *AnalyzeURLUseCase) Execute(targetURL string, l *slog.Logger) {
 			result.Links.Inaccessible++
 		}
 	}
-	uc.Publisher.Publish(result)
-	l.Info("Analysis completed and published", "url", targetURL)
+	if err := uc.Publisher.Publish(result); err != nil {
+		l.Error("Result delivery failed", "error", err, "url", targetURL)
+	} else {
+		l.Info("Result delivered to socket server", "url", targetURL)
+	}
 }
