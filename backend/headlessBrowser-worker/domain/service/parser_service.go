@@ -1,20 +1,23 @@
-package main
+package service
 
 import (
 	"io"
 	"strings"
 
+	"headlessBrowser-worker/domain/model"
+
 	"golang.org/x/net/html"
 )
 
 // ParseHTML processes the reader and populates the AnalysisResult
-func ParseHTML(body io.Reader) (*AnalysisResult, error) {
+func ParseHTML(body io.Reader) (*model.AnalysisResult, error) {
 	doc, err := html.Parse(body)
 	if err != nil {
 		return nil, err
 	}
 
-	result := &AnalysisResult{
+	result := &model.AnalysisResult{
+		HTMLVersion:   "HTML5", // Default fallback for ChromeDP rendered HTML
 		HeadingCounts: make(map[string]int),
 	}
 
@@ -24,16 +27,23 @@ func ParseHTML(body io.Reader) (*AnalysisResult, error) {
 	return result, nil
 }
 
-func traverse(n *html.Node, res *AnalysisResult) {
+func traverse(n *html.Node, res *model.AnalysisResult) {
+	// Handle Doctype Detection
 	if n.Type == html.DoctypeNode {
-		res.HTMLVersion = determineHTMLVersion(n.Data)
+		version := determineHTMLVersion(n.Data)
+		if version != "" {
+			res.HTMLVersion = version
+		}
 	}
 
 	if n.Type == html.ElementNode {
 		switch n.Data {
 		case "title":
 			if n.FirstChild != nil {
-				res.PageTitle = n.FirstChild.Data
+				// Clean up tabs and newlines from title
+				title := strings.ReplaceAll(n.FirstChild.Data, "\n", "")
+				title = strings.ReplaceAll(title, "\t", "")
+				res.PageTitle = strings.TrimSpace(n.FirstChild.Data)
 			}
 		case "h1", "h2", "h3", "h4", "h5", "h6":
 			res.HeadingCounts[n.Data]++
@@ -42,11 +52,18 @@ func traverse(n *html.Node, res *AnalysisResult) {
 				res.HasLoginForm = true
 			}
 		case "a":
-			//add this case to find links
+			// Extract Links
 			for _, attr := range n.Attr {
 				if attr.Key == "href" {
-					res.discoveredLinks = append(res.discoveredLinks, attr.Val)
+					link := strings.TrimSpace(attr.Val)
+					if link != "" && !strings.HasPrefix(link, "javascript:") {
+						res.DiscoveredLinks = append(res.DiscoveredLinks, link)
+					}
 				}
+			}
+			// Heuristic: If we haven't found a form yet, check if this link looks like a login button
+			if !res.HasLoginForm && isLoginLink(n) {
+				res.HasLoginForm = true
 			}
 		}
 	}
@@ -69,12 +86,11 @@ func determineHTMLVersion(doctype string) string {
 	if strings.Contains(d, "xhtml") {
 		return "XHTML"
 	}
-	return "Unknown/Other"
+	return ""
 }
 
 // isLoginForm looks for a password input inside a form
 func isLoginForm(n *html.Node) bool {
-	// Simple logic: If a form contains an <input type="password">, it's a login form
 	return hasPasswordInput(n)
 }
 
@@ -88,6 +104,17 @@ func hasPasswordInput(n *html.Node) bool {
 	}
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
 		if hasPasswordInput(c) {
+			return true
+		}
+	}
+	return false
+}
+
+// isLoginLink checks if an anchor tag text contains "login" (useful for SPAs)
+func isLoginLink(n *html.Node) bool {
+	if n.FirstChild != nil && n.FirstChild.Type == html.TextNode {
+		text := strings.ToLower(n.FirstChild.Data)
+		if strings.Contains(text, "login") || strings.Contains(text, "sign in") {
 			return true
 		}
 	}

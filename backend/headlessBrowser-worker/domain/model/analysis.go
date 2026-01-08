@@ -1,6 +1,6 @@
-package main
+package model
 
-// AnalysisResult represents the final report sent to the React frontend
+// AnalysisResult holds the final data sent to the React frontend
 type AnalysisResult struct {
 	URL           string         `json:"url"`
 	HTMLVersion   string         `json:"html_version"`
@@ -9,18 +9,25 @@ type AnalysisResult struct {
 	Links         LinkStats      `json:"links"`
 	HasLoginForm  bool           `json:"has_login_form"`
 	Error         *ErrorDetail   `json:"error,omitempty"`
-	// Internal field (not exported to JSON) to collect links during parsing
-	discoveredLinks []string
+	// unexported field used during processing
+	DiscoveredLinks []string
 }
 
-// LinkStats breaks down the internal, external, and broken links
+// LinkStats holds the summarized counts
 type LinkStats struct {
 	InternalCount int `json:"internal_count"`
 	ExternalCount int `json:"external_count"`
 	Inaccessible  int `json:"inaccessible"`
 }
 
-// ErrorDetail provides the specific feedback required if a URL fails
+// LinkInfo is what your checker.go specifically is missing
+type LinkInfo struct {
+	Address    string
+	IsExternal bool
+	Accessible bool
+}
+
+// ErrorDetail for API error responses
 type ErrorDetail struct {
 	StatusCode int    `json:"status_code"`
 	Message    string `json:"message"`
