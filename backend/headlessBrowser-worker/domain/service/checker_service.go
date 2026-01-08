@@ -1,14 +1,17 @@
-package main
+package service
 
 import (
 	"net/http"
 	"net/url"
+
+	"headlessBrowser-worker/domain/model"
+
 	"strings"
 	"sync"
 	"time"
 )
 
-func ProcessLinks(baseURL string, rawLinks []string) []LinkInfo {
+func ProcessLinks(baseURL string, rawLinks []string) []model.LinkInfo {
 	// 1. DEDUPLICATION: Use a map to keep only unique URLs
 	uniqueMap := make(map[string]bool)
 	var uniqueLinks []string
@@ -21,7 +24,7 @@ func ProcessLinks(baseURL string, rawLinks []string) []LinkInfo {
 	}
 
 	var wg sync.WaitGroup
-	linksChan := make(chan LinkInfo, len(uniqueLinks))
+	linksChan := make(chan model.LinkInfo, len(uniqueLinks))
 	semaphore := make(chan struct{}, 10) // Reduced to 10 to avoid 403/429 errors
 
 	targetParsed, _ := url.Parse(baseURL)
@@ -44,7 +47,7 @@ func ProcessLinks(baseURL string, rawLinks []string) []LinkInfo {
 			accessible := checkLink(resolvedURL)
 			<-semaphore
 
-			linksChan <- LinkInfo{
+			linksChan <- model.LinkInfo{
 				Address:    resolvedURL,
 				IsExternal: isExt,
 				Accessible: accessible,
@@ -57,7 +60,7 @@ func ProcessLinks(baseURL string, rawLinks []string) []LinkInfo {
 		close(linksChan)
 	}()
 
-	var results []LinkInfo
+	var results []model.LinkInfo
 	for l := range linksChan {
 		results = append(results, l)
 	}

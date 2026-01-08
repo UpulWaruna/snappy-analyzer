@@ -1,4 +1,4 @@
-package main
+package external
 
 import (
 	"context"
@@ -8,7 +8,9 @@ import (
 	"github.com/chromedp/chromedp"
 )
 
-func GetRenderedHTML(targetURL string) (string, error) {
+type ChromeAdapter struct{}
+
+func (c *ChromeAdapter) GetRenderedHTML(targetURL string) (string, error) {
 	// 1. Setup options (Headless mode is default)
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.NoSandbox,                           // Crucial for Docker

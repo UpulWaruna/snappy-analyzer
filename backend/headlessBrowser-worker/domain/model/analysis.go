@@ -1,4 +1,4 @@
-package main
+package model
 
 // AnalysisResult holds the final data sent to the React frontend
 type AnalysisResult struct {
@@ -10,7 +10,7 @@ type AnalysisResult struct {
 	HasLoginForm  bool           `json:"has_login_form"`
 	Error         *ErrorDetail   `json:"error,omitempty"`
 	// unexported field used during processing
-	discoveredLinks []string
+	DiscoveredLinks []string
 }
 
 // LinkStats holds the summarized counts

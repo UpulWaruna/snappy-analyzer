@@ -1,20 +1,22 @@
-package main
+package service
 
 import (
 	"io"
 	"strings"
 
+	"headlessBrowser-worker/domain/model"
+
 	"golang.org/x/net/html"
 )
 
 // ParseHTML processes the reader and populates the AnalysisResult
-func ParseHTML(body io.Reader) (*AnalysisResult, error) {
+func ParseHTML(body io.Reader) (*model.AnalysisResult, error) {
 	doc, err := html.Parse(body)
 	if err != nil {
 		return nil, err
 	}
 
-	result := &AnalysisResult{
+	result := &model.AnalysisResult{
 		HTMLVersion:   "HTML5", // Default fallback for ChromeDP rendered HTML
 		HeadingCounts: make(map[string]int),
 	}
@@ -25,7 +27,7 @@ func ParseHTML(body io.Reader) (*AnalysisResult, error) {
 	return result, nil
 }
 
-func traverse(n *html.Node, res *AnalysisResult) {
+func traverse(n *html.Node, res *model.AnalysisResult) {
 	// Handle Doctype Detection
 	if n.Type == html.DoctypeNode {
 		version := determineHTMLVersion(n.Data)
@@ -55,7 +57,7 @@ func traverse(n *html.Node, res *AnalysisResult) {
 				if attr.Key == "href" {
 					link := strings.TrimSpace(attr.Val)
 					if link != "" && !strings.HasPrefix(link, "javascript:") {
-						res.discoveredLinks = append(res.discoveredLinks, link)
+						res.DiscoveredLinks = append(res.DiscoveredLinks, link)
 					}
 				}
 			}
