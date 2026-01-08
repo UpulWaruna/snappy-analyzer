@@ -4,6 +4,7 @@ import (
 	"common/logger"
 	"headlessBrowser-worker/adapter/external"
 	"headlessBrowser-worker/api/http/handle"
+	"headlessBrowser-worker/api/middleware"
 	"headlessBrowser-worker/application/analysis"
 	"log/slog"
 	"net/http"
@@ -40,6 +41,12 @@ func main() {
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
+
+	finalHandler := middleware.LoggingMiddleware(
+		middleware.IdempotencyMiddleware(mux),
+	)
+	srv.Handler = finalHandler
+
 	slog.Info("listening", "addr", srv.Addr)
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		slog.Error("server failed", "err", err)
