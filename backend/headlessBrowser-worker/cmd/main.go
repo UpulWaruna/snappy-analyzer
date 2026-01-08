@@ -4,6 +4,7 @@ import (
 	"common/logger"
 	"headlessBrowser-worker/adapter/external"
 	"headlessBrowser-worker/api/http/handle"
+	"headlessBrowser-worker/api/middleware"
 	"headlessBrowser-worker/application/analysis"
 	"log/slog"
 	"net/http"
@@ -29,7 +30,7 @@ func main() {
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"http://localhost:3000"}, // Your React URL
 		AllowedMethods: []string{"POST", "OPTIONS"},
-		AllowedHeaders: []string{"Content-Type"},
+		AllowedHeaders: []string{"Content-Type", "Idempotency-Key"},
 		Debug:          true, // Useful for troubleshooting
 	})
 
@@ -40,6 +41,14 @@ func main() {
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
+
+	// Wrap middleware
+	finalHandler := middleware.LoggingMiddleware(
+		middleware.IdempotencyMiddleware(mux),
+	)
+
+	srv.Handler = c.Handler(finalHandler)
+
 	slog.Info("listening", "addr", srv.Addr)
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		slog.Error("server failed", "err", err)
