@@ -5,6 +5,7 @@ go 1.25.1
 require (
 	common/logger v0.0.0
 	github.com/chromedp/chromedp v0.14.2
+	github.com/rs/cors v1.11.1
 	golang.org/x/net v0.48.0
 )
 
