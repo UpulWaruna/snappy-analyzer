@@ -47,7 +47,9 @@ function App() {
       // Trigger the worker to start analysis
       const response = await fetch('http://localhost:8080/analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' , 
+                   'Idempotency-Key': crypto.randomUUID(),
+          },
         body: JSON.stringify({ url }),
       });
 
