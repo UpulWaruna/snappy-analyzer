@@ -3,6 +3,7 @@ package analysis
 import (
 	"bytes"
 	"headlessBrowser-worker/application/core"
+	"headlessBrowser-worker/domain/model"
 	"headlessBrowser-worker/domain/service"
 	"log/slog"
 )
@@ -15,7 +16,22 @@ type AnalyzeURLUseCase struct {
 func (uc *AnalyzeURLUseCase) Execute(targetURL string, l *slog.Logger) {
 	html, err := uc.Browser.GetRenderedHTML(targetURL)
 	if err != nil {
-		uc.Publisher.Publish(map[string]string{"url": targetURL, "error": err.Error()})
+		l.Info("failed to get rendered HTML", "error", err.Error())
+
+		// 2. Prepare a specific "Unreachable" error result
+		errorResult := model.AnalysisResult{
+			URL: targetURL,
+			Error: &model.ErrorDetail{
+				Message:    "The site could not be reached. Please check the URL and try again.",
+				StatusCode: 502,
+			},
+		}
+
+		//uc.Publisher.Publish(map[string]string{"url": targetURL, "error": err.Error()})
+		// 3. Publish the error result so the UI updates
+		if pubErr := uc.Publisher.Publish(errorResult); pubErr != nil {
+			l.Error("Failed to publish error state", "error", pubErr)
+		}
 		return
 	}
 
