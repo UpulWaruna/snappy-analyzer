@@ -41,3 +41,30 @@ Relative links (e.g., `/about`) are automatically resolved to absolute URLs (e.g
 2. **Rate Limiting**: Add a rate limiter to the backend to prevent abuse of the analysis endpoint.
 3. **SEO Deep-Dive**: Add checks for OpenGraph tags, Meta descriptions, and Image ALT attributes.
 4. **Export**: Allow users to download the analysis report as a PDF or CSV.
+
+sequenceDiagram
+    participant UI as React Frontend
+    participant W as Headless-Worker
+    participant S as Socket-Server
+    participant C as Headless Chrome
+
+    Note over UI, C: 1. Request Phase
+    UI->>W: POST /analyze {url}
+    W->>W: Validate URL Format
+    alt URL is Invalid
+        W-->>UI: 422 Unprocessable Entity
+    else URL is Valid
+        W-->>UI: 202 Accepted (Processing)
+    end
+
+    Note over W, C: 2. Execution Phase (Async)
+    W->>C: Navigate to Target URL
+    C-->>W: Rendered HTML Content
+    W->>W: Parse DOM (Headings, Title, Forms)
+    W->>W: Concurrent Link Check (Semaphore)
+
+    Note over W, UI: 3. Delivery Phase
+    W->>S: POST /publish {AnalysisResult}
+    S->>S: Broadcast to Connected Clients
+    S-->>UI: WebSocket Message (JSON)
+    UI->>UI: Update Dashboard State
