@@ -42,29 +42,25 @@ Relative links (e.g., `/about`) are automatically resolved to absolute URLs (e.g
 3. **SEO Deep-Dive**: Add checks for OpenGraph tags, Meta descriptions, and Image ALT attributes.
 4. **Export**: Allow users to download the analysis report as a PDF or CSV.
 
-sequenceDiagram
-    participant UI as React Frontend
-    participant W as Headless-Worker
-    participant S as Socket-Server
-    participant C as Headless Chrome
-
-    Note over UI, C: 1. Request Phase
-    UI->>W: POST /analyze {url}
-    W->>W: Validate URL Format
-    alt URL is Invalid
-        W-->>UI: 422 Unprocessable Entity
-    else URL is Valid
-        W-->>UI: 202 Accepted (Processing)
+graph LR
+    subgraph Client Side
+        A[React App]
     end
 
-    Note over W, C: 2. Execution Phase (Async)
-    W->>C: Navigate to Target URL
-    C-->>W: Rendered HTML Content
-    W->>W: Parse DOM (Headings, Title, Forms)
-    W->>W: Concurrent Link Check (Semaphore)
+    subgraph Backend Services
+        B[Headless-Worker]
+        C[Socket-Server]
+    end
 
-    Note over W, UI: 3. Delivery Phase
-    W->>S: POST /publish {AnalysisResult}
-    S->>S: Broadcast to Connected Clients
-    S-->>UI: WebSocket Message (JSON)
-    UI->>UI: Update Dashboard State
+    subgraph Infrastructure
+        D[ChromeDP / Headless Chrome]
+    end
+
+    A -- "1. POST /analyze" --> B
+    B -- "2. Controls" --> D
+    D -- "3. HTML" --> B
+    B -- "4. POST /publish" --> C
+    C -- "5. WebSocket Push" --> A
+    
+    style B fill:#f9f,stroke:#333,stroke-width:2px
+    style C fill:#bbf,stroke:#333,stroke-width:2px
