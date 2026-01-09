@@ -26,3 +26,8 @@ func (h *AnalysisHandler) HandleAnalyze(w http.ResponseWriter, r *http.Request) 
 
 	go h.UseCase.Execute(req.URL, l)
 }
+
+func urlIsValid(url string) bool {
+	// Basic validation logic (can be expanded as needed)
+	return len(url) > 0
+}
