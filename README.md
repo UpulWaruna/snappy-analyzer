@@ -45,6 +45,7 @@ Relative links (e.g., `/about`) are automatically resolved to absolute URLs (e.g
 3. **SEO Deep-Dive**: Add checks for OpenGraph tags, Meta descriptions, and Image ALT attributes.
 4. **Export**: Allow users to download the analysis report as a PDF or CSV.
 
+
 ## Design and Flow
 
 ``` mermaid
