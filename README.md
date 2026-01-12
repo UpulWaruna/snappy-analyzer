@@ -18,6 +18,9 @@ A full-stack application built with **Go (Golang)** and **React** that analyzes 
 2. Install dependencies: `go mod tidy`
 3. Start the server: `go run .`
 4. The server will start on `http://localhost:8080`
+5. ### 📂 Detailed Service Documentation
+For technical deep-dives, API specifications, and service-level architecture:
+👉 **[View Backend Technical Guide](./backend/README.md)**
 
 ### Running the Frontend
 1. Navigate to the frontend folder: `cd frontend`
@@ -41,3 +44,30 @@ Relative links (e.g., `/about`) are automatically resolved to absolute URLs (e.g
 2. **Rate Limiting**: Add a rate limiter to the backend to prevent abuse of the analysis endpoint.
 3. **SEO Deep-Dive**: Add checks for OpenGraph tags, Meta descriptions, and Image ALT attributes.
 4. **Export**: Allow users to download the analysis report as a PDF or CSV.
+
+## Design and Flow
+
+``` mermaid
+    graph LR
+    subgraph Client Side
+        A[React App]
+    end
+
+    subgraph Backend Services
+        B[Headless-Worker]
+        C[Socket-Server]
+    end
+
+    subgraph Infrastructure
+        D[ChromeDP / Headless Chrome]
+    end
+
+    A -- "1. POST /analyze" --> B
+    B -- "2. Controls" --> D
+    D -- "3. HTML" --> B
+    B -- "4. POST /publish" --> C
+    C -- "5. WebSocket Push" --> A
+    
+    style B fill:#f9,stroke:#333,stroke-width:2px
+    style C fill:#bb,stroke:#333,stroke-width:2px
+```
