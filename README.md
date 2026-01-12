@@ -46,7 +46,7 @@ Relative links (e.g., `/about`) are automatically resolved to absolute URLs (e.g
 4. **Export**: Allow users to download the analysis report as a PDF or CSV.
 
 
-## Design and Flow
+
 
 ## Design and Flow
 
@@ -76,3 +76,26 @@ Relative links (e.g., `/about`) are automatically resolved to absolute URLs (e.g
 ```
 
 
+## Sequential digram
+``` mermaid
+    sequenceDiagram
+    autonumber
+    participant A as React App
+    participant B as Headless-Worker
+    participant D as Headless Chrome
+    participant C as Socket-Server
+
+    Note over A, B: Request Phase
+    A->>B: POST /analyze {url}
+    B-->>A: 202 Accepted (Immediate)
+
+    Note over B, D: Analysis Phase (Background)
+    B->>D: Controls (via ChromeDP)
+    D-->>B: Returns Rendered HTML
+    B->>B: Parse DOM & Check Links
+
+    Note over B, A: Delivery Phase
+    B->>C: POST /publish {result}
+    C-->>A: WebSocket Push [AnalysisResult]
+    Note right of A: UI Updates Automatically
+```
