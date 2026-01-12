@@ -45,29 +45,5 @@ Relative links (e.g., `/about`) are automatically resolved to absolute URLs (e.g
 3. **SEO Deep-Dive**: Add checks for OpenGraph tags, Meta descriptions, and Image ALT attributes.
 4. **Export**: Allow users to download the analysis report as a PDF or CSV.
 
-## Design and Flow
 
-``` mermaid
-    graph LR
-    subgraph Client Side
-        A[React App]
-    end
 
-    subgraph Backend Services
-        B[Headless-Worker]
-        C[Socket-Server]
-    end
-
-    subgraph Infrastructure
-        D[ChromeDP / Headless Chrome]
-    end
-
-    A -- "1. POST /analyze" --> B
-    B -- "2. Controls" --> D
-    D -- "3. HTML" --> B
-    B -- "4. POST /publish" --> C
-    C -- "5. WebSocket Push" --> A
-    
-    style B fill:#f9,stroke:#333,stroke-width:2px
-    style C fill:#bb,stroke:#333,stroke-width:2px
-```
