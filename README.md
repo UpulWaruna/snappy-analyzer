@@ -18,6 +18,9 @@ A full-stack application built with **Go (Golang)** and **React** that analyzes 
 2. Install dependencies: `go mod tidy`
 3. Start the server: `go run .`
 4. The server will start on `http://localhost:8080`
+5. ### 📂 Detailed Service Documentation
+For technical deep-dives, API specifications, and service-level architecture:
+👉 **[View Backend Technical Guide](./backend/README.md)**
 
 ### Running the Frontend
 1. Navigate to the frontend folder: `cd frontend`
