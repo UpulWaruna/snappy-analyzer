@@ -27,7 +27,6 @@ func (uc *AnalyzeURLUseCase) Execute(targetURL string, l *slog.Logger) {
 			},
 		}
 
-		//uc.Publisher.Publish(map[string]string{"url": targetURL, "error": err.Error()})
 		// 3. Publish the error result so the UI updates
 		if pubErr := uc.Publisher.Publish(errorResult); pubErr != nil {
 			l.Error("Failed to publish error state", "error", pubErr)
