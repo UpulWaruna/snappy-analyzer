@@ -11,16 +11,6 @@ type SocketAdapter struct {
 	Endpoint string
 }
 
-// func (s *SocketAdapter) Publish(result interface{}) {
-// 	jsonData, _ := json.Marshal(result)
-// 	resp, err := http.Post(s.Endpoint, "application/json", bytes.NewBuffer(jsonData))
-// 	if err != nil {
-// 		slog.Error("Failed to reach Socket Service: %v", "err", err)
-// 		return
-// 	}
-// 	defer resp.Body.Close()
-// }
-
 func (s *SocketAdapter) Publish(result interface{}) error {
 	// 1. Check for Marshalling errors first
 	jsonData, err := json.Marshal(result)

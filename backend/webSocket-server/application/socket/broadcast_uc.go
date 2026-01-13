@@ -2,7 +2,7 @@ package socket
 
 import (
 	"log/slog"
-	"webSocket-server/domain/model" // Use your actual module name
+	"webSocket-server/domain/model"
 )
 
 type BroadcastUseCase struct {
