@@ -48,7 +48,8 @@ Following **Clean Architecture** principles, the code is organized into layers:
 
 ```
 ## Unit Testing Added for Domain layer 
-  /backend/healess-worker/domain/analysis_service_test.go
+  /backend/headless-worker/domain/service/analysis_service_test.go
+  go test -cover
 ---
 
 ## 3. Key Technical Decisions & Refactors
