@@ -47,9 +47,9 @@ Following **Clean Architecture** principles, the code is organized into layers:
 └── docker-compose.yml      # Orchestration for all services
 
 ```
-## Unit Testing Added for Domain layer 
-  /backend/headless-worker/domain/service/analysis_service_test.go
-  go test -cover
+### Unit Testing Added for Domain layer 
+* **Test path**: /backend/headless-worker/domain/service/analysis_service_test.go 
+* **Run test with coverage**: go test -cover
 ---
 
 ## 3. Key Technical Decisions & Refactors
