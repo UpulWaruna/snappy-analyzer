@@ -1,4 +1,5 @@
-Project Structure
+```text
+Project Structure - clean and domain driven design (DDD) pattern
 .
 ├── adapter/                # Adapter Layer - External system interactions
 │   ├── amqp/               # Message queue adapters
