@@ -9,8 +9,9 @@ import (
 )
 
 type AnalyzeURLUseCase struct {
-	Browser   core.BrowserProvider
-	Publisher core.ResultPublisher
+	Browser     core.BrowserProvider
+	Publisher   core.ResultPublisher
+	DataService *service.AnalysisDataService
 }
 
 func (uc *AnalyzeURLUseCase) Execute(targetURL string, l *slog.Logger) {
@@ -48,6 +49,11 @@ func (uc *AnalyzeURLUseCase) Execute(targetURL string, l *slog.Logger) {
 			result.Links.Inaccessible++
 		}
 	}
+
+	if err := uc.DataService.StoreAnalysisResult(result); err != nil {
+		l.Error("Failed to save analysis result", "error", err, "url", targetURL)
+	}
+
 	if err := uc.Publisher.Publish(result); err != nil {
 		l.Error("Result delivery failed", "error", err, "url", targetURL)
 	} else {

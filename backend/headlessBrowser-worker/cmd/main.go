@@ -3,9 +3,11 @@ package main
 import (
 	"common/logger"
 	"headlessBrowser-worker/adapter/external"
+	"headlessBrowser-worker/adapter/repository/memory"
 	"headlessBrowser-worker/api/http/handle"
 	"headlessBrowser-worker/api/middleware"
 	"headlessBrowser-worker/application/analysis"
+	"headlessBrowser-worker/domain/service"
 	"log/slog"
 	"net/http"
 	"time"
@@ -19,7 +21,9 @@ func main() {
 	// Dependency Manual Injection
 	chrome := &external.ChromeAdapter{}
 	publisher := &external.SocketAdapter{Endpoint: "http://socket-service:8081/publish"}
-	useCase := &analysis.AnalyzeURLUseCase{Browser: chrome, Publisher: publisher}
+	repo := memory.NewInMemoryRepository()
+	dataService := service.NewAnalysisDataService(repo)
+	useCase := &analysis.AnalyzeURLUseCase{Browser: chrome, Publisher: publisher, DataService: dataService}
 	handler := &handle.AnalysisHandler{UseCase: useCase}
 
 	mux := http.NewServeMux()
@@ -34,20 +38,25 @@ func main() {
 		Debug:          true, // Useful for troubleshooting
 	})
 
+	// Wrap middleware
+	handlerChain :=
+		c.Handler(
+			middleware.LoggingMiddleware(
+				middleware.IdempotencyMiddleware(
+					middleware.CheckInCacheMiddleware(dataService)(mux),
+				),
+			),
+		)
+
 	srv := &http.Server{
 		Addr:         ":8080",
-		Handler:      c.Handler(mux),
+		Handler:      handlerChain,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
 
-	// Wrap middleware
-	finalHandler := middleware.LoggingMiddleware(
-		middleware.IdempotencyMiddleware(mux),
-	)
-
-	srv.Handler = c.Handler(finalHandler)
+	//srv.Handler = c.Handler(finalHandler)
 
 	slog.Info("listening", "addr", srv.Addr)
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
