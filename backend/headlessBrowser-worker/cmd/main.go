@@ -38,12 +38,14 @@ func main() {
 		Debug:          true, // Useful for troubleshooting
 	})
 
+	l := slog.Default()
+
 	// Wrap middleware
 	handlerChain :=
 		c.Handler(
 			middleware.LoggingMiddleware(
 				middleware.IdempotencyMiddleware(
-					middleware.CheckInCacheMiddleware(dataService)(mux),
+					middleware.CheckInCacheMiddleware(dataService, l)(mux),
 				),
 			),
 		)

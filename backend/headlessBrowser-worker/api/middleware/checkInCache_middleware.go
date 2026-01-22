@@ -7,10 +7,11 @@ import (
 	"headlessBrowser-worker/adapter/external"
 	"headlessBrowser-worker/domain/service"
 	"io"
+	"log/slog"
 	"net/http"
 )
 
-func CheckInCacheMiddleware(dataService *service.AnalysisDataService) func(http.Handler) http.Handler {
+func CheckInCacheMiddleware(dataService *service.AnalysisDataService, l *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -27,11 +28,11 @@ func CheckInCacheMiddleware(dataService *service.AnalysisDataService) func(http.
 				next.ServeHTTP(w, r)
 				return
 			}
-			fmt.Println("from Cache middleware")
+			l.Info("from Cache middleware")
 
 			// 2. Check Service/Repo
 			cachedResult, err := dataService.RetrieveAnalysisResult(targetURL)
-			fmt.Println("Cache lookup for URL:", targetURL, "Found:", cachedResult != nil)
+			l.Info("Cache lookup for URL:", "url", targetURL, "found", cachedResult != nil)
 			if err == nil && cachedResult != nil {
 				// 3. CACHE HIT: Return the result directly!
 				w.Header().Set("Content-Type", "application/json")
@@ -49,6 +50,7 @@ func CheckInCacheMiddleware(dataService *service.AnalysisDataService) func(http.
 				err = publisher.Publish(cachedResult)
 				if err != nil {
 					fmt.Println("Error publishing cached result:", err)
+					l.Info("Error publishing cached result:", "err", err)
 				}
 				return // <--- STOP HERE: Don't call the next handler (Analysis)
 			}
